@@ -17,13 +17,13 @@ spec:
       {{- end }}
       labels:
         {{- include "helm.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
+	      {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-spec:
-  dnsConfig:
-    nameservers:
-     - 1.1.1.1
+    spec:
+      dnsConfig:
+        nameservers:
+          - 1.1.1.1
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
