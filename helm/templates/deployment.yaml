@@ -32,19 +32,25 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      - hostPath:
+        path: /dev/mem
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          volumeMounts:
+          - mountPath:/dev/mem
+            name: dev-mem 
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-              env:
-          - name: {{ .Values.secret.env }}
-            valueFrom:
-              secretKeyRef:
-                key: {{ .Values.secret.key }}
-                name: {{ .Values.secret.name }}
+          env:
+          -name: TELE_TOKEN
+           valueFROM:
+             secretKeyRef:
+               key: token
+               name: kbot
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http

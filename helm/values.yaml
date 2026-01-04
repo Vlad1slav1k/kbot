@@ -4,8 +4,7 @@ image:
   arch: amd64
 # Додатково визначте секцію для токену TELE_TOKEN
 secret:
-  name: "kbot"
-  env: "8556644419:AAEzbHy_1-RqVqVkdxW9hzbwmuWmvz90X_0"
-  key: "token"
-securityContext:
-  privileged: true
+  name: kbot  
+  tokenKey: 8556644419:AAEzbHy_1-RqVqVkdxW9hzbwmuWmvz90X_0
+  tokenName: TELE_TOKEN
+
