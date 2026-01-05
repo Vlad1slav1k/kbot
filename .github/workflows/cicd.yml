@@ -19,12 +19,12 @@ jobs:
       uses: docker/login-action@v2
       with:
          username: ${{ secrets.DOCKERHUB_USERNAME }}
-         password: ${{ serrets.DOCKERHUB_TOKEN }}
-    -name: Build&Push
-     env:
-      APP: "kbot"
-      REGISTRY:  ${{ secrets.DOCKERHUB_USERNAME }}
-     run: make image push
+         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Build&Push
+      env:
+        APP: "kbot"
+        REGISTRY:  ${{ secrets.DOCKERHUB_USERNAME }}
+      run: make image push
 
   cd:
     name: CD
@@ -33,16 +33,16 @@ jobs:
 
     steps:
     
-    -uses: actions/checkout@v3
-     with:
-      fetch-depth: 0
-    -run: echo "VERSION=$(git describe --tags --abbrev=0)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: echo "VERSION=$(git describe --tags --abbrev=0)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-    -uses: mikefarah/yq@master
-     with:
-      cmd: yq -i 'image.tag=strenv(VERSION)'
+    - uses: mikefarah/yq@master
+      with:
+        cmd: yq -i 'image.tag=strenv(VERSION)'
 
-    -run:
+    - run:
         git config.name github-actions
         git config user.email github-actions@github.com
         git commit -am "update version $VERSION"
