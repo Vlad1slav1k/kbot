@@ -1,9 +1,13 @@
 name: KBOT-CICD
 
-on: push
+on:
+  push:
+    branches:
+      - develop
 
 jobs:
   ci:
+    
     name: CI
     runs-on: ubuntu-latest
 
@@ -32,7 +36,7 @@ jobs:
     - name: Build&Push
       env:
         APP: "kbot"
-        REGISTRY:  ${{ secrets.GH_USERNAME }}
+        REGISTRY:  ghcr.io/${{ secrets.GH_USERNAME }}
       run: make image push
 
   cd:
