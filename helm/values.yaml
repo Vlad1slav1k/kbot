@@ -1,6 +1,6 @@
 image:
   repository: vlad1slavik
-  tag: "v1.3.0-7e8cf46"
+  tag: "v1.3.0-75db6d5"
   arch: amd64
 # Додатково визначте секцію для токену TELE_TOKEN
 secret:
