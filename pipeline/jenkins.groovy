@@ -6,9 +6,9 @@ pipeline {
     }
 
     environment {
-        GITHUB_TOKEN=credentials('Vlad1slav1k')
+        GITHUB_TOKEN=credentials('jenkins')
         REPO = 'https://github.com/Vlad1slav1k/kbot.git'
-        BRANCH = 'main'
+        BRANCH = 'develop'
     }
 
     stages {
