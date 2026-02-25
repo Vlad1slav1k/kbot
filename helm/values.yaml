@@ -9,3 +9,11 @@ secret:
   key: "token"
 securityContext:
   privileged: true
+controller:
+  startupProbe:
+    httpGet:
+      path: /login
+      port: 8080
+    failureThreshold: 30
+    periodSeconds: 10
+    initialDelaySeconds: 120
