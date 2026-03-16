@@ -26,11 +26,12 @@ pipeline {
             }
         }
 
-        stage('build') {
-            steps {
-                sh "make ${params.OS} ${params.ARCH}"
-            }
-        }
+       stage('build') {
+          steps {
+              echo "Building binary for platform ${params.OS} on ${params.ARCH} started"
+              sh "make build-${params.OS}-${params.ARCH}"
+    }
+}
 
         stage('image') {
             steps {
