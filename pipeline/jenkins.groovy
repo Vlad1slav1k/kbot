@@ -35,7 +35,7 @@ pipeline {
 
         stage('image') {
             steps {
-                sh "make image-${params.OS} ${params.ARCH}"
+               sh "make ${params.OS} ${params.ARCH}"
             }
         }
 
