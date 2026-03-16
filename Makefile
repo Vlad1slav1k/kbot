@@ -1,19 +1,21 @@
-ifeq '$(findstring ;,$(PATH))' ';'
-    detected_OS := windows
-	detected_arch := amd64
-else
-    detected_OS := $(shell uname | tr '[:upper:]' '[:lower:]' 2> /dev/null || echo Unknown)
-    detected_OS := $(patsubst CYGWIN%,Cygwin,$(detected_OS))
-    detected_OS := $(patsubst MSYS%,MSYS,$(detected_OS))
-    detected_OS := $(patsubst MINGW%,MSYS,$(detected_OS))
-	detected_arch := $(shell dpkg --print-architecture 2>/dev/null || amd64)
-endif
-
 APP=$(shell basename $(shell git remote get-url origin))
 REGISTRY := ghcr.io/vlad1slav1k
 VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
 TARGETOS=linux
 TARGETARCH=amd64
+
+# Build configuration
+TARGETOS ?= linux
+TARGETARCH ?= arm64
+CGO_ENABLED ?= 0
+
+# Validate environment variables
+ifeq ($(TARGETOS),)
+$(error TARGETOS is not set)
+endif
+ifeq ($(TARGETARCH),)
+$(error TARGETARCH is not set)
+endif
 
 format: 
 	gofmt -s -w ./
