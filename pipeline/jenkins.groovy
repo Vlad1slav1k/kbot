@@ -53,9 +53,10 @@ pipeline {
             }
         } 
     }
-    post {
-        always {
-            sh 'docker logout'
+post {
+    always {
+        script {
+            sh 'docker logout || true'
         }
     }
 }
