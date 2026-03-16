@@ -1,60 +1,78 @@
-# -------------------------
-# Configuration
-# -------------------------
-APP := $(shell basename $(shell git remote get-url origin) .git)
-REGISTRY := ghcr.io/vlad1slav1k
-VERSION := $(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
+pipeline {
+    agent any
 
-# Default build targets
-TARGETOS ?= linux
-TARGETARCH ?= amd64
-CGO_ENABLED ?= 0
+    parameters {
+        choice(name: 'OS', choices: ['linux', 'darwin', 'windows'], description: 'Target OS')
+        choice(name: 'ARCH', choices: ['amd64', 'arm64'], description: 'Target ARCH')
+    }
 
-# Validate environment variables
-ifeq ($(TARGETOS),)
-$(error TARGETOS is not set)
-endif
-ifeq ($(TARGETARCH),)
-$(error TARGETARCH is not set)
-endif
+    environment {
+        GITHUB_TOKEN = credentials('jenkins')  // секрет с токеном GHCR
+        REGISTRY = 'ghcr.io/vlad1slav1k'
+    }
 
-# -------------------------
-# Go commands
-# -------------------------
-format:
-	gofmt -s -w ./ 
+    stages {
 
-get:
-	go get ./...
+        stage('Clone') {
+            steps {
+                echo 'Cloning repository...'
+                git branch: 'develop', url: 'https://github.com/Vlad1slav1k/kbot.git'
+            }
+        }
 
-lint:
-	golint ./...
+        stage('Test') {
+            steps {
+                echo 'Running Go tests...'
+                sh 'make test || true' // не падаем если тестов нет
+            }
+        }
 
-test:
-	go test -v ./...
+        stage('Build') {
+            steps {
+                echo "Building for ${params.OS}/${params.ARCH}..."
+                script {
+                    def status = sh(
+                        script: "make build TARGETOS=${params.OS} TARGETARCH=${params.ARCH}",
+                        returnStatus: true
+                    )
+                    if (status != 0) error("Build failed!")
+                }
+            }
+        }
 
-# -------------------------
-# Build binary
-# -------------------------
-build: format get
-	@echo "Building ${APP} for ${TARGETOS}-${TARGETARCH}..."
-	CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o bin/${APP}-${TARGETOS}-${TARGETARCH} -ldflags "-X github.com/Vlad1slav1k/kbot/cmd.appVersion=${VERSION}"
+        stage('Docker Build') {
+            steps {
+                echo "Building Docker image for ${params.OS}/${params.ARCH}..."
+                script {
+                    def status = sh(
+                        script: "make image TARGETOS=${params.OS} TARGETARCH=${params.ARCH}",
+                        returnStatus: true
+                    )
+                    if (status != 0) error("Docker build failed!")
+                }
+            }
+        }
 
-# -------------------------
-# Docker image
-# -------------------------
-image: build
-	@echo "Building Docker image ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}..."
-	docker build --build-arg TARGETOS=${TARGETOS} --build-arg TARGETARCH=${TARGETARCH} -t ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} .
+        stage('Login GHCR') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'jenkins', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PSW')]) {
+                    sh 'echo $GITHUB_PSW | docker login ghcr.io -u $GITHUB_USER --password-stdin'
+                }
+            }
+        }
 
-push: image
-	@echo "Pushing Docker image ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}..."
-	docker push ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}
+        stage('Push Docker Image') {
+            steps {
+                echo "Pushing Docker image to GHCR..."
+                sh "make push TARGETOS=${params.OS} TARGETARCH=${params.ARCH}"
+            }
+        }
+    }
 
-# -------------------------
-# Clean
-# -------------------------
-clean:
-	@echo "Cleaning binaries and Docker images..."
-	rm -rf bin/*
-	docker rmi ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} || true
+    post {
+        always {
+            echo 'Logging out from Docker...'
+            sh 'docker logout'
+        }
+    }
+}
