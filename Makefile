@@ -1,12 +1,13 @@
-APP=$(shell basename $(shell git remote get-url origin))
+# -------------------------
+# Configuration
+# -------------------------
+APP := $(shell basename $(shell git remote get-url origin) .git)
 REGISTRY := ghcr.io/vlad1slav1k
-VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
-TARGETOS=linux
-TARGETARCH=amd64
+VERSION := $(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
 
-# Build configuration
+# Default build targets
 TARGETOS ?= linux
-TARGETARCH ?= arm64
+TARGETARCH ?= amd64
 CGO_ENABLED ?= 0
 
 # Validate environment variables
@@ -17,26 +18,43 @@ ifeq ($(TARGETARCH),)
 $(error TARGETARCH is not set)
 endif
 
-format: 
-	gofmt -s -w ./
+# -------------------------
+# Go commands
+# -------------------------
+format:
+	gofmt -s -w ./ 
 
 get:
-	go get
+	go get ./...
 
 lint:
-	golint
+	golint ./...
 
-test: 
-	go test -v
+test:
+	go test -v ./...
 
+# -------------------------
+# Build binary
+# -------------------------
 build: format get
-	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${shell dpkg --print-architecture} go build -v -o kbot -ldflags "-X="github.com/Vlad1slav1k/kbot/cmd.appVersion=${VERSION}
+	@echo "Building ${APP} for ${TARGETOS}-${TARGETARCH}..."
+	CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o bin/${APP}-${TARGETOS}-${TARGETARCH} -ldflags "-X github.com/Vlad1slav1k/kbot/cmd.appVersion=${VERSION}"
 
-image:
-	docker build . -t ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}
+# -------------------------
+# Docker image
+# -------------------------
+image: build
+	@echo "Building Docker image ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}..."
+	docker build --build-arg TARGETOS=${TARGETOS} --build-arg TARGETARCH=${TARGETARCH} -t ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} .
 
-push:
+push: image
+	@echo "Pushing Docker image ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}..."
 	docker push ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}
 
-clean: 
-	docker rmi ${REGISTRY}/${APP}:${VERSION}-${TARGETARCH}
+# -------------------------
+# Clean
+# -------------------------
+clean:
+	@echo "Cleaning binaries and Docker images..."
+	rm -rf bin/*
+	docker rmi ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} || true
